@@ -99,38 +99,37 @@ namespace Binder.Nsudotnet.Enigma
 
             if (symmetricAlgorithm == null) return;
 
-            var encryptor = symmetricAlgorithm.CreateEncryptor();
-            var iv = symmetricAlgorithm.IV;
-            var key = symmetricAlgorithm.Key;
-
-            using (var infs = inputFile.OpenRead())
+            using (symmetricAlgorithm)
             {
-                using (var outfs = outputFile.Create())
+                byte[] iv;
+                byte[] key;
+                using (var encryptor = symmetricAlgorithm.CreateEncryptor())
                 {
-                    using (var cs = new CryptoStream(outfs, encryptor, CryptoStreamMode.Write))
-                    {
-                        var bytes = new byte[64 * 1024];
-                        int read;
+                    iv = symmetricAlgorithm.IV;
+                    key = symmetricAlgorithm.Key;
 
-                        while ((read = infs.Read(bytes, 0, bytes.Length)) > 0)
+                    using (var infs = inputFile.OpenRead())
+                    {
+                        using (var outfs = outputFile.Create())
                         {
-                            cs.Write(bytes, 0, read);
+                            using (var cs = new CryptoStream(outfs, encryptor, CryptoStreamMode.Write))
+                            {
+                                infs.CopyTo(cs);
+                            }
                         }
                     }
                 }
-            }
 
-            var keyFile = new FileInfo("file.key.txt");
-            using (var fs = keyFile.Create())
-            {
-                using (var sw = new StreamWriter(fs))
+                var keyFile = new FileInfo("file.key.txt");
+                using (var fs = keyFile.Create())
                 {
-                    sw.WriteLine(Convert.ToBase64String(iv));
-                    sw.WriteLine(Convert.ToBase64String(key));
+                    using (var sw = new StreamWriter(fs))
+                    {
+                        sw.WriteLine(Convert.ToBase64String(iv));
+                        sw.WriteLine(Convert.ToBase64String(key));
+                    }
                 }
             }
-
-            symmetricAlgorithm.Dispose();
         }
 
         private static void Decrypt(FileInfo inputFile, FileInfo keyFile, FileInfo outputFile, string algorithm)
@@ -156,48 +155,49 @@ namespace Binder.Nsudotnet.Enigma
             }
 
             if (symmetricAlgorithm == null) return;
-            byte[] iv;
-            byte[] key;
 
-            using (var fs = keyFile.OpenRead())
+            using (symmetricAlgorithm)
             {
-                using (var sr = new StreamReader(fs))
+                byte[] iv;
+                byte[] key;
+
+                using (var fs = keyFile.OpenRead())
                 {
-                    var str = sr.ReadLine();
-                    if (null == str)
+                    using (var sr = new StreamReader(fs))
                     {
-                        throw new ArgumentException("Invalid key file");
-                    }
-                    iv = Convert.FromBase64String(str);
-                    str = sr.ReadLine();
-                    if (null == str)
-                    {
-                        throw new ArgumentException("Invalid key file");
-                    }
-                    key = Convert.FromBase64String(str);
-                }
-            }
+                        var str = sr.ReadLine();
 
-            var decryptor = symmetricAlgorithm.CreateDecryptor(key, iv);
-
-            using (var infs = inputFile.OpenRead())
-            {
-                using (var outfs = outputFile.Create())
-                {
-                    using (var cs = new CryptoStream(infs, decryptor, CryptoStreamMode.Read))
-                    {
-                        var bytes = new byte[64 * 1024];
-                        int read;
-
-                        while ((read = cs.Read(bytes, 0, bytes.Length)) > 0)
+                        if (null == str)
                         {
-                            outfs.Write(bytes, 0, read);
+                            throw new ArgumentException("Invalid key file");
+                        }
+
+                        iv = Convert.FromBase64String(str);
+                        str = sr.ReadLine();
+
+                        if (null == str)
+                        {
+                            throw new ArgumentException("Invalid key file");
+                        }
+
+                        key = Convert.FromBase64String(str);
+                    }
+                }
+
+                using (var decryptor = symmetricAlgorithm.CreateDecryptor(key, iv))
+                {
+                    using (var infs = inputFile.OpenRead())
+                    {
+                        using (var outfs = outputFile.Create())
+                        {
+                            using (var cs = new CryptoStream(infs, decryptor, CryptoStreamMode.Read))
+                            {
+                                cs.CopyTo(outfs);
+                            }
                         }
                     }
                 }
             }
-
-            symmetricAlgorithm.Dispose();
         }
     }
 }

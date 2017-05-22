@@ -74,12 +74,10 @@ namespace Binder.Nsudotnet.LinesCounter
                     {
                         continue;
                     }
-
-                    if (Regex.IsMatch(currentString, "^//.*"))
+                    if (currentString.StartsWith("//"))
                     {
                         continue;
                     }
-
                     while (currentString.Contains("\""))
                     {
                         if (str)

@@ -51,7 +51,7 @@ namespace Binder.Nsudotnet.NumberGuesser
 
                         Console.WriteLine("#{0}\t{1}\t{2}", triesCount, history[triesCount - 1], "=");
 
-                        Console.WriteLine("Minutes spent: {0}", (DateTime.Now.Subtract(time)).TotalMinutes.ToString(CultureInfo.CurrentCulture));
+                        Console.WriteLine("Minutes spent: {0}", (DateTime.Now.Subtract(time)).TotalMinutes);
 
                         break;
                     }
